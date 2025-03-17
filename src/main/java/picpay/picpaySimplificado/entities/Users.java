@@ -37,4 +37,12 @@ public class Users {
 
     @Enumerated(EnumType.STRING)
     private UsersType userType;
+
+    public Users(String name, String cpf, String email, String password, Double balance) {
+        this.name = name;
+        this.cpf = cpf;
+        this.email = email;
+        this.password = password;
+        this.balance = balance;
+    }
 }

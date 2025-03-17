@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -23,7 +22,7 @@ public class Transactions {
     private Integer id;
 
     @Column
-    private BigDecimal amount;
+    private Double amount;
 
     @ManyToOne
     @JoinColumn(name = "sender_id")
