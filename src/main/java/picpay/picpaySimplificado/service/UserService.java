@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import picpay.picpaySimplificado.DTO.UserTypeDTO;
 import picpay.picpaySimplificado.DTO.UsersDTO;
 import picpay.picpaySimplificado.entities.Users;
 import picpay.picpaySimplificado.enums.UsersType;
@@ -31,13 +30,20 @@ public class UserService {
         return userRepository.save(users);
     }
 
-    public void validateTransaction(Users sender, Double amount) throws Exception {
-        if (sender.getUserType() == UsersType.MERCHANT) {
-            throw new Exception("Usuario não permitido para fazer transação");
+    public ResponseEntity<String> validateTransaction(Optional<Users> sender, Double amount) {
+        if (!sender.isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Remetente não encontrado");
         }
-        if (sender.getBalance().compareTo(amount) < 0) {
-            throw new Exception("Saldo insuficiente");
+
+        Users senderUser = sender.get();
+
+        if (senderUser.getUserType() == UsersType.MERCHANT) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuario não permitido para fazer transação");
         }
+        if (senderUser.getBalance().compareTo(amount) < 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Saldo insuficiente");
+        }
+        return ResponseEntity.status(HttpStatus.OK).body("Saldo atual: " + sender.get().getBalance());
     }
 
     public ResponseEntity<String> usersRegister(UsersDTO usersDTO) {

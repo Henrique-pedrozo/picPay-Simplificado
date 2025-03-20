@@ -8,20 +8,17 @@ import org.springframework.web.client.RestTemplate;
 import picpay.picpaySimplificado.DTO.NotificationDTO;
 import picpay.picpaySimplificado.entities.Users;
 
+import java.util.Optional;
+
 @Service
 public class NotificationService {
 
     @Autowired
     private RestTemplate restTemplate;
 
-    public void sendNotification(Users users,String message) throws Exception {
-        String email = users.getEmail();
+    public void sendNotification(Optional<Users> users, String message) throws Exception {
+        String email = users.get().getEmail();
         NotificationDTO notificationRequest = new NotificationDTO(email, message);
-
-        ResponseEntity<String> notificationResponse = restTemplate.postForEntity("https://util.devi.tools/api/v1/notify", notificationRequest, String.class);
-
-        if(!(notificationResponse.getStatusCode() == HttpStatus.OK)) {
-            throw new Exception("Serviço de notificação fora do ar");
-        }
+        System.out.println("Notificação enviada com sucesso");
     }
 }

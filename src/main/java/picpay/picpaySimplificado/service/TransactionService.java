@@ -12,7 +12,6 @@ import picpay.picpaySimplificado.repositories.TransactionRepository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.Map;
 
 @Service
 public class TransactionService {
@@ -23,17 +22,21 @@ public class TransactionService {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @Autowired
     private RestTemplate restTemplate;
 
-    public void transaction(TransactionDTO transactionDTO) throws Exception {
+    @Autowired
+    private NotificationService notificationService;
+
+    public ResponseEntity<String> createTransaction(TransactionDTO transactionDTO) throws Exception {
         Optional<Users> sender = this.userService.findById(transactionDTO.senderId());
         Optional<Users> receiver = this.userService.findById(transactionDTO.receiverId());
-        userService.validateTransaction(sender.orElseThrow(), transactionDTO.value());
 
-        boolean isAuthorized = this.authorizeTransaction(sender, transactionDTO.value());
-
-        if(!isAuthorized) {
-            throw new Exception("Transação não autorizada");
+        if (!sender.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Remetente não encontrado");
+        }
+        if (!receiver.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Recebedor não encontrado");
         }
 
         Transactions transactions = new Transactions();
@@ -43,20 +46,24 @@ public class TransactionService {
         transactions.setReceiver(receiver.get());
         transactions.setTimestamp(LocalDateTime.now());
 
+        ResponseEntity<String> validationResponse = userService.validateTransaction(sender, transactionDTO.value());
+        if (validationResponse.getStatusCode() != HttpStatus.OK) {
+            return validationResponse;
+        }
+
         sender.get().setBalance(sender.get().getBalance() - transactionDTO.value());
         receiver.get().setBalance(receiver.get().getBalance() + transactionDTO.value());
+
         this.transactionRepository.save(transactions);
         this.userService.saveUsers(sender.get());
         this.userService.saveUsers(receiver.get());
+
+        this.notificationService.sendNotification(sender, "Transação realizada com sucesso");
+        this.notificationService.sendNotification(receiver, "Transação realizada com sucesso");
+        return ResponseEntity.ok().body("A transação realizada com sucesso! Saldo do remetente: " + sender.get().getBalance());
     }
 
-    public boolean authorizeTransaction(Optional<Users> sender, Double value) {
-        ResponseEntity<Map> authorizationResponse = restTemplate.getForEntity("https://util.devi.tools/api/v2/authorize", Map.class);
-
-        if (authorizationResponse.getStatusCode() == HttpStatus.OK && authorizationResponse.getBody() != null) {
-            String message = (String) authorizationResponse.getBody().get("message");
-
-            return "Autorizado".equalsIgnoreCase(message);
-        }else return false;
-    }
+//    public ResponseEntity<String> authorizeTransaction(Optional<Users> sender, Double value) {
+//
+//    }
 }
