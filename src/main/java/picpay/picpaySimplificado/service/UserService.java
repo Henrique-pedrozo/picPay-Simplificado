@@ -1,7 +1,10 @@
 package picpay.picpaySimplificado.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import picpay.picpaySimplificado.DTO.UserTypeDTO;
 import picpay.picpaySimplificado.DTO.UsersDTO;
 import picpay.picpaySimplificado.entities.Users;
 import picpay.picpaySimplificado.enums.UsersType;
@@ -37,19 +40,33 @@ public class UserService {
         }
     }
 
-    public String usersRegister(UsersDTO usersDTO) {
-        Users users = new Users();
-        users.setName(usersDTO.name());
-        users.setCpf(usersDTO.cpf());
-        users.setEmail(usersDTO.email());
-        users.setPassword(usersDTO.password());
-        users.setBalance(0.0);
-        if (users.getUserType() == UsersType.MERCHANT) {
-            users.setUserType(UsersType.MERCHANT);
-        }else {
-            users.setUserType(UsersType.COMMON);
+    public ResponseEntity<String> usersRegister(UsersDTO usersDTO) {
+        Users users = new Users(usersDTO);
+        if (!(userRepository.findUsersByCpf(usersDTO.cpf()).isPresent())) {
+            users.setCpf(usersDTO.cpf());
+        } else {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Cpf já cadastrado.");
+        }
+        if (!(userRepository.findUsersByEmail(usersDTO.email()).isPresent())) {
+            users.setEmail(usersDTO.email());
+        } else {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email já cadastrado.");
         }
         userRepository.save(users);
-        return "Usuario registrado com sucesso";
+        return ResponseEntity.ok().body("Usuario registrado com sucesso");
     }
+
+//    public ResponseEntity<String> changeType(UserTypeDTO usersTypeDTO) {
+//        Users users = new Users();
+//        String type = "";
+//        switch (type) {
+//            case "MERCHANT":
+//                users.setUserType(UsersType.MERCHANT);
+//                return ResponseEntity.ok().body("Mudado com sucesso");
+//            case "COMMON":
+//                users.setUserType(UsersType.COMMON);
+//                return ResponseEntity.ok().body("Mudado com sucesso");
+//        }
+//        return ResponseEntity.badRequest().body("Coloque um tipo existente.");
+//    }
 }

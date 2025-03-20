@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import picpay.picpaySimplificado.DTO.UsersDTO;
 import picpay.picpaySimplificado.enums.UsersType;
 
 @Entity
@@ -38,11 +39,12 @@ public class Users {
     @Enumerated(EnumType.STRING)
     private UsersType userType;
 
-    public Users(String name, String cpf, String email, String password, Double balance) {
-        this.name = name;
-        this.cpf = cpf;
-        this.email = email;
-        this.password = password;
-        this.balance = balance;
+    public Users(UsersDTO usersDTO) {
+        this.name = usersDTO.name();
+        this.cpf = usersDTO.cpf();
+        this.email = usersDTO.email();
+        this.password = usersDTO.password();
+        this.balance = usersDTO.balance();
+        this.userType = usersDTO.userType();
     }
 }
