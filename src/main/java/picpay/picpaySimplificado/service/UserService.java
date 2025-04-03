@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import picpay.picpaySimplificado.DTO.UsersDTO;
 import picpay.picpaySimplificado.entities.Users;
 import picpay.picpaySimplificado.enums.UsersType;
+import picpay.picpaySimplificado.exceptions.*;
 import picpay.picpaySimplificado.repositories.UserRepository;
 
 import java.util.List;
@@ -31,35 +32,43 @@ public class UserService {
     }
 
     public ResponseEntity<String> validateTransaction(Optional<Users> sender, Double amount) {
-        if (!sender.isPresent()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Remetente não encontrado");
-        }
-
         Users senderUser = sender.get();
-
         if (senderUser.getUserType() == UsersType.MERCHANT) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuario não permitido para fazer transação");
+            throw new UnauthorizedTransactionException("Usuário não permitido para fazer transação");
         }
         if (senderUser.getBalance().compareTo(amount) < 0) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Saldo insuficiente");
+            throw new InsufficientBalanceException("Saldo insuficiente");
+        }
+        if (amount < 1) {
+            throw new MinimumValueException("Valor mínimo é 1.0");
+        }
+        if (senderUser.getId().equals(senderUser.getId())) {
+            throw new SelfTransactionException("Remetente não pode fazer transações para si próprio.");
         }
         return ResponseEntity.status(HttpStatus.OK).body("Saldo atual: " + sender.get().getBalance());
     }
 
     public ResponseEntity<String> usersRegister(UsersDTO usersDTO) {
         Users users = new Users(usersDTO);
-        if (!(userRepository.findUsersByCpf(usersDTO.cpf()).isPresent())) {
-            users.setCpf(usersDTO.cpf());
-        } else {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Cpf já cadastrado.");
+        if (!(usersDTO.name().matches("[a-zA-Z]+"))) {
+            throw new BadRequestException("Nome inválido");
         }
-        if (!(userRepository.findUsersByEmail(usersDTO.email()).isPresent())) {
-            users.setEmail(usersDTO.email());
-        } else {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email já cadastrado.");
+        if (!usersDTO.cpf().matches("\\d{11}")) {
+            throw new ConflictCpfException("Cpf incorreto: Não pode conter letras e ser menor que 11 caracteres");
         }
+        if (userRepository.findUsersByCpf(usersDTO.cpf()).isPresent()) {
+            throw new ConflictCpfException("Cpf já cadastrado.");
+        }
+        if (userRepository.findUsersByEmail(usersDTO.email()).isPresent()) {
+            throw new ConflictEmailException("Email já existe.");
+        }
+        if (!usersDTO.email().matches("^[\\w.-]+@[a-zA-Z]+\\.[a-zA-Z]{2,}$")){
+            throw new ConflictEmailException("Email em formato não convencional");
+        }
+        users.setEmail(usersDTO.email());
+        users.setCpf(usersDTO.cpf());
         userRepository.save(users);
-        return ResponseEntity.ok().body("Usuario registrado com sucesso");
+        return ResponseEntity.ok().body("Usuário registrado com sucesso");
     }
 
 //    public ResponseEntity<String> changeType(UserTypeDTO usersTypeDTO) {

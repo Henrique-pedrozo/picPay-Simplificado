@@ -62,8 +62,4 @@ public class TransactionService {
         this.notificationService.sendNotification(receiver, "Transação realizada com sucesso");
         return ResponseEntity.ok().body("A transação realizada com sucesso! Saldo do remetente: " + sender.get().getBalance());
     }
-
-//    public ResponseEntity<String> authorizeTransaction(Optional<Users> sender, Double value) {
-//
-//    }
 }
