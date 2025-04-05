@@ -11,6 +11,7 @@ import picpay.picpaySimplificado.entities.Users;
 import picpay.picpaySimplificado.repositories.TransactionRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -24,6 +25,9 @@ public class TransactionService {
 
     @Autowired
     private RestTemplate restTemplate;
+
+    @Autowired
+    private AuthorizerService authorizerService;
 
     @Autowired
     private NotificationService notificationService;
@@ -58,8 +62,14 @@ public class TransactionService {
         this.userService.saveUsers(sender.get());
         this.userService.saveUsers(receiver.get());
 
-        this.notificationService.sendNotification(sender, "Transação realizada com sucesso");
-        this.notificationService.sendNotification(receiver, "Transação realizada com sucesso");
+        authorizerService.authorize(transactions);
+
+        notificationService.notificy(transactions);
+
         return ResponseEntity.ok().body("A transação realizada com sucesso! Saldo do remetente: " + sender.get().getBalance());
+    }
+
+    public List<Transactions> findAllTransactions() {
+        return this.transactionRepository.findAll();
     }
 }
